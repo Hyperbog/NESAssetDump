@@ -26,5 +26,15 @@
 <div class="unique-scroll"><canvas id="uniquePreview" width="128" height="8" aria-label="Unique tile atlas preview, click to select its first original tile"></canvas></div>
 <p><small>Export includes native-resolution <code>unique_tiles.png</code>, exact tile-pattern bytes, and a JSON index mapping every original tile to its unique atlas entry. The PNG uses the selected palette group as a preview; per-tile manual palette assignments are preserved in JSON.</small></p>
 </section>
+<section><h2>8. Searchable tile catalog &amp; Godot TileSet</h2>
+<p class="hint">Search all tiles in the selected graphics source by absolute tile index or original raw bytes. Results retain ROM bank and byte offsets.</p>
+<label>Search <input id="tileSearch" type="text" placeholder="Tile #125, 0x7D, or hex:AA BB" maxlength="80"></label>
+<label>Filter <select id="tileFilter"><option value="all">All tiles</option><option value="unique">First occurrence of each unique pattern</option><option value="duplicate">Repeated patterns</option><option value="blank">Blank patterns</option><option value="nonblank">Nonblank patterns</option></select></label>
+<button id="tileFind">Search tiles</button><button id="tilePrev" disabled>Previous</button><span id="tilePage" class="hint"></span><button id="tileNext" disabled>Next</button>
+<div id="tileCatalogStatus" role="status" class="hint">Load a ROM to browse tiles.</div>
+<div class="unique-scroll"><canvas id="tileCatalog" width="128" height="8" aria-label="Searchable ROM tile catalog; click to inspect a tile"></canvas></div>
+<button id="tileSetExport" disabled>Export filtered Godot TileSet ZIP</button>
+<p><small>ZIP includes PNG atlas, Godot 4 TileSet .tres with 8×8 atlas tiles, JSON with original tile indices/offsets. Display colors are preview palettes; sprite palette identity cannot be inferred from raw CHR-ROM.</small></p>
+</section>
 <section><h2>Godot 4 setup</h2><p>Set texture filtering to <strong>Nearest</strong>. Use <code>TileSetAtlasSource</code> with <code>texture_region_size = (8, 8)</code>, <code>margins = (0, 0)</code>, and <code>separation = (0, 0)</code>. For <code>Sprite2D</code>, enable regions; for <code>AnimatedSprite2D</code>, import frames from a sprite sheet.</p><small>Palette colors depend on game runtime state. Accurate sprite-palette association cannot be determined from CHR-ROM alone, although imported palette sets and manual associations can be preserved.</small></section>
-<script defer src="renderer.js"></script><script defer src="sprite_editor.js"></script><script defer src="unique_tiles.js"></script></body></html>
+<script defer src="renderer.js"></script><script defer src="sprite_editor.js"></script><script defer src="unique_tiles.js"></script><script defer src="tile_catalog.js"></script></body></html>
