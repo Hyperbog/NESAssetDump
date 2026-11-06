@@ -1,0 +1,40 @@
+name: Validate Godot import
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Headless Godot 4.7 sprite import
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser-test dependencies
+        run: |
+          python -m pip install playwright pillow
+          python -m playwright install --with-deps chromium
+      - name: Validate NES graphics and generate Godot test project
+        run: |
+          python tests/test_renderer.py
+          python tests/test_sprite_editor.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
+      - name: Download official Godot editor 4.7.2
+        run: |
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          chmod +x "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64" --headless --version
+      - name: Import exported PNG and resource in Godot
+        run: |
+          "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64" --headless --editor --import --path "$RUNNER_TEMP/godot-fixture"
+      - name: Validate Godot resource and scene
+        run: |
+          "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64" --headless --path "$RUNNER_TEMP/godot-fixture" --script res://godot_verify.gd
