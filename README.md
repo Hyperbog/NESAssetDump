@@ -111,3 +111,16 @@ Use **Unique 8×8 tile atlas** to analyze the currently selected CHR-ROM bank or
 The JSON schema `nes-asset-unique-tiles-v1` preserves source ROM offsets, the selected range's `firstOriginalTile`, every unique atlas tile's location and occurrence count, and `originalToAtlasIndex`. The Nth mapping entry locates source tile `firstOriginalTile + N` in the unique atlas. Manual palette assignments remain associated with **original** tile indices in metadata; the PNG uses one chosen preview palette so duplicates are not incorrectly split by color. The metadata labels PRG-ROM scans as experimental, not confirmed graphics.
 
 A regression test, `python tests/test_unique_tiles.py`, validates exact deduplication, source offset mapping, exported tile bytes and PNG pixels, and bank-change invalidation with a synthetic freely generated ROM.
+
+## Searchable tile catalog and native Godot TileSet (v0.6)
+
+Use **Section 8 — Searchable tile catalog** after loading a ROM to search the entire selected graphics source, independent of the visible CHR bank. Search absolute tile indices in decimal or `0x` hexadecimal, raw tile-byte prefixes such as `hex:FF 00`, or filter for unique, repeated, blank, and nonblank 16-byte patterns. The preview is paginated at 128 tiles; click a result to inspect its original source index and ROM offset.
+
+**Export filtered Godot TileSet ZIP** exports every matching tile, not just the preview page, in the game-specific folder `nes_assets/<game>_<sourceCRC32>/tile_catalog/`:
+
+- `tileset_atlas.png` — 8×8 pixels per tile, 16 columns, no margins or separation.
+- `tileset.tres` — native Godot 4 `TileSet` with a `TileSetAtlasSource` (source ID 0), registering each exported tile.
+- `tileset_metadata.json` — original tile indices, byte offsets, 8 KiB bank indices, atlas coordinates, duplicate counts, and palette provenance.
+- `README.txt` — extraction and import instructions.
+
+Extract the `nes_assets/` folder into your Godot project root and assign the exported `tileset.tres` to a `TileMapLayer` node's TileSet property. Set nearest-neighbor filtering. **Palette colors are previews, not verified per-sprite/background in-game associations.** CHR-ROM 2bpp decoding is exact; PRG-ROM scanning in CHR-RAM games remains experimental and can include non-graphics data. Large filtered selections may need smaller limits to fit into browser canvas dimensions.
