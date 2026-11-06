@@ -66,6 +66,7 @@ async function unzipNES(entry){
  return result;
 }
 async function addFiles(fileList){
+ const previousGame=library[Number(ui.game.value)]?.name;
  let added=0,issues=[];
  for(const f of fileList){try{
   const b=new Uint8Array(await f.arrayBuffer());
@@ -75,9 +76,9 @@ async function addFiles(fileList){
   }else if(f.name.toLowerCase().endsWith('.nes')){library.push({name:f.name,bytes:b});added++}
   else issues.push(`${f.name}: not .nes or .zip`);
  }catch(e){issues.push(`${f.name}: ${e.message}`)}}
- library.sort((a,b)=>a.name.localeCompare(b.name));const selected=ui.game.value;
+ library.sort((a,b)=>a.name.localeCompare(b.name));
  ui.game.replaceChildren();for(let i=0;i<library.length;i++){const o=document.createElement('option');o.value=String(i);o.textContent=library[i].name;ui.game.append(o)}
- ui.game.disabled=!library.length;if(library.length){const at=selected?library.findIndex(e=>e.name===selected):-1;ui.game.value=String(at>=0?at:0);await selectGame()}
+ ui.game.disabled=!library.length;if(library.length){const at=previousGame?library.findIndex(e=>e.name===previousGame):-1;ui.game.value=String(at>=0?at:0);await selectGame()}
  if(issues.length)message(issues.join('\n'));else message(`${added} ROM${added===1?'':'s'} added (${library.length} in library).`);
 }
 async function selectGame(){
@@ -288,9 +289,10 @@ window.NES_ASSET_API={
  getContext:()=>{
   if(!rom||!sourceData)return null;
   if(spriteCRCSource!==sourceData){spriteCRCSource=sourceData;spriteCRCValue=hex(crc32(sourceData),8)}
-  return {name:rom.name,mapper:rom.mapper,sourceKind,sourceData,crc32:spriteCRCValue,paletteGroup:Number(ui.paletteGroup.value),variant:activeVariant(),masterColors,tileCanvas:(tile,group)=>paintImage(tile,1,1,{group,layer:'sprite',transparent:true,assignments:false}),zipStore,pngBlob,download};
+  return {name:rom.name,mapper:rom.mapper,sourceKind,sourceData,sourceBase,view:getView(),assignments:new Map(assignments),paletteLayer:ui.paletteLayer.value,transparent:ui.transparent.checked,crc32:spriteCRCValue,paletteGroup:Number(ui.paletteGroup.value),variant:activeVariant(),masterColors,tileCanvas:(tile,group)=>paintImage(tile,1,1,{group,layer:'sprite',transparent:true,assignments:false}),zipStore,pngBlob,download};
  },
  tileCanvas:(tile,group)=>paintImage(tile,1,1,{group,layer:'sprite',transparent:true,assignments:false}),
+ inspectTile:inspect,
  zipStore,pngBlob,download,
  setMasterColors:(rgb)=>{masterColors=rgb;render()},
  importPalette:(data,name)=>{variants.push({id:'project'+variants.length,name,kind:'project',data:new Uint8Array(data),offset:null});rebuildVariantSelect();ui.paletteVariant.value=String(variants.length-1);render()},
