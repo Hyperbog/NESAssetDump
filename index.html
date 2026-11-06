@@ -50,5 +50,14 @@
 <p id="batchStatus" role="status" class="hint">Load a collection ZIP or multiple NES ROMs to enable batch export.</p>
 <small>Outputs a game-specific directory containing 8×8 bank PNG atlases, original CHR-ROM bytes, and tile-offset JSON. The ZIP includes a compatibility CSV showing games that need a CHR-RAM decoder. PNG colors are grayscale previews, not confirmed game palettes.</small>
 </section>
+<section><h2>11. NES 8×16 sprite-pair candidates</h2>
+<p class="hint">Export 8×16 hardware sprite-pair candidates from a selected 8 KiB CHR-ROM bank. OAM tile bytes 0–255 select two stacked tiles and a pattern table. Pairs are not confirmed in-game sprites.</p>
+<label>CHR bank <select id="pairBank"></select></label><label>Sprite sub-palette <select id="pairGroup"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+<div class="unique-scroll"><canvas id="pairPreview" width="128" height="16" aria-label="8x16 hardware sprite candidate atlas"></canvas></div>
+<p id="pairInfo" class="hint">Click a sprite candidate to inspect CHR tile offsets.</p>
+<button id="pairExport" disabled>Export 8×16 sprite-pair candidates (Godot ZIP)</button>
+<p id="pairStatus" role="status" class="hint">Load a CHR-ROM game to view sprite-pair candidates.</p>
+<small>Includes 256 OAM-indexed pairs, flip variants, original 8 KiB CHR bytes, JSON offsets, and a Godot TileSet. One sub-palette colors both halves; real mapper bank assignments are unknown. CHR-RAM games need a separate decoder.</small>
+</section>
 <section><h2>Godot 4 setup</h2><p>Set texture filtering to <strong>Nearest</strong>. Use <code>TileSetAtlasSource</code> with <code>texture_region_size = (8, 8)</code>, <code>margins = (0, 0)</code>, and <code>separation = (0, 0)</code>. For <code>Sprite2D</code>, enable regions; for <code>AnimatedSprite2D</code>, import frames from a sprite sheet.</p><small>Palette colors depend on game runtime state. Accurate sprite-palette association cannot be determined from CHR-ROM alone, although imported palette sets and manual associations can be preserved.</small></section>
-<script defer src="renderer.js"></script><script defer src="sprite_editor.js"></script><script defer src="unique_tiles.js"></script><script defer src="tile_catalog.js"></script><script defer src="batch_export.js"></script><script defer src="workspace.js"></script></body></html>
+<script defer src="renderer.js"></script><script defer src="sprite_editor.js"></script><script defer src="unique_tiles.js"></script><script defer src="tile_catalog.js"></script><script defer src="batch_export.js"></script><script defer src="workspace.js"></script><script defer src="sprite_pairs.js"></script></body></html>
