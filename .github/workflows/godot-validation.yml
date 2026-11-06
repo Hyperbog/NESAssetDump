@@ -25,6 +25,7 @@ jobs:
         run: |
           python tests/test_renderer.py
           python tests/test_unique_tiles.py
+          python tests/test_tileset_palettes.py
           python tests/test_tile_catalog.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
           python tests/test_sprite_editor.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
       - name: Download official Godot editor 4.7.2
