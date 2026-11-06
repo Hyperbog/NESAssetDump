@@ -78,7 +78,7 @@ async function addFiles(fileList){
  }catch(e){issues.push(`${f.name}: ${e.message}`)}}
  library.sort((a,b)=>a.name.localeCompare(b.name));
  ui.game.replaceChildren();for(let i=0;i<library.length;i++){const o=document.createElement('option');o.value=String(i);o.textContent=library[i].name;ui.game.append(o)}
- ui.game.disabled=!library.length;if(library.length){const at=previousGame?library.findIndex(e=>e.name===previousGame):-1;ui.game.value=String(at>=0?at:0);await selectGame()}
+ ui.game.disabled=!library.length;window.dispatchEvent(new Event("nes:library"));if(library.length){const at=previousGame?library.findIndex(e=>e.name===previousGame):-1;ui.game.value=String(at>=0?at:0);await selectGame()}
  if(issues.length)message(issues.join('\n'));else message(`${added} ROM${added===1?'':'s'} added (${library.length} in library).`);
 }
 async function selectGame(){
@@ -286,6 +286,13 @@ const drop=$('drop');drop.addEventListener('dragover',e=>{e.preventDefault();dro
 
 let spriteCRCSource=null,spriteCRCValue='';
 window.NES_ASSET_API={
+ libraryEntries:()=>library.map((e,i)=>({index:i,name:e.name})),
+ readROMAtIndex:async i=>{
+  const e=library[i];if(!e)throw Error('ROM library index out of range.');
+  const bytes=e.bytes||await unzipNES(e.zip);
+  return readNES(bytes,e.name);
+ },
+ crc32,
  getContext:()=>{
   if(!rom||!sourceData)return null;
   if(spriteCRCSource!==sourceData){spriteCRCSource=sourceData;spriteCRCValue=hex(crc32(sourceData),8)}
