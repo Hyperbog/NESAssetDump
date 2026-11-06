@@ -1,6 +1,6 @@
 {
   "name": "nesassetdump",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Local NES graphics and palette atlas ripper for Godot",
   "private": true,
   "license": "MIT",
@@ -26,7 +26,8 @@
       "package.json",
       "sprite_editor.js",
       "unique_tiles.js",
-      "tile_catalog.js"
+      "tile_catalog.js",
+      "batch_export.js"
     ],
     "directories": {
       "output": "dist"
