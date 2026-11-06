@@ -156,3 +156,13 @@ To restore, first load the **same** `.nes` ROM (including revision) and then sel
 Workspace colors and sprite arrangements remain user-authored; imported PRG palette candidates do not imply authentic runtime palette assignments.
 
 **Packaging fix:** `batch_export.js` is included in Electron builds starting with v0.9.
+
+## NES 8×16 sprite-pair atlas export (v0.10)
+
+In **Section 11**, select a CHR-ROM bank and a sprite sub-palette. The app constructs 256 candidate 8×16 sprites in OAM tile-byte order (0–255), using the documented NES 8×16 pairing rule: bit 0 selects the PPU pattern table and the other bits select an even/odd tile pair. See [NESdev PPU programmer reference](https://www.nesdev.org/wiki/PPU_programmer_reference).
+
+**Export 8×16 sprite-pair candidates (Godot ZIP)** includes a 128×256 RGBA `sprite_pairs.png` atlas, horizontal/vertical/both flip sheets, the exact 8 KiB CHR-ROM bytes, a JSON index (original tile indices and ROM offsets), and a Godot 4 `TileSet` resource with 256 registered 8×16 regions. Extract `nes_assets/` into the Godot project root before opening the TileSet.
+
+**Accuracy boundary:** These are potential OAM sprite pairs, not identified characters, levels, or actual animations. The selected physical 8 KiB ROM bank is assumed to map contiguously into PPU $0000–$1FFF. Bank mappings in VRC6/MMC5 (and other mappers) may differ dynamically. A game may use 8×8 sprite mode. Each 8×16 candidate uses one selected sprite sub-palette and transparent index 0; actual palette usage is not recovered. CHR-RAM cartridges still require specific graphics decoding.
+
+Regression test: `python tests/test_sprite_pairs.py`. GitHub CI also loads the exported 8×16 TileSet in headless Godot.
