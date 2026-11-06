@@ -31,6 +31,7 @@ def inline_test_html():
     html = html.replace('<script defer src="sprite_editor.js"></script>', '<script>' + (ROOT / 'sprite_editor.js').read_text() + '</script>')
     html = html.replace('<script defer src="unique_tiles.js"></script>', '<script>' + (ROOT / 'unique_tiles.js').read_text() + '</script>')
     html = html.replace('<script defer src="tile_catalog.js"></script>', '<script>' + (ROOT / 'tile_catalog.js').read_text() + '</script>')
+    html = html.replace('<script defer src="batch_export.js"></script>', '<script>' + (ROOT / 'batch_export.js').read_text() + '</script>')
     return html
 
 
