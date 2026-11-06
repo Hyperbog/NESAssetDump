@@ -20,7 +20,7 @@ jobs:
       - name: Install browser-test dependencies
         run: |
           python -m pip install playwright pillow
-          python -m playwright install --with-deps chromium
+          python -m playwright install chromium
       - name: Validate NES graphics and generate Godot test project
         run: |
           python tests/test_renderer.py
