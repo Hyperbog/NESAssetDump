@@ -24,6 +24,7 @@ jobs:
       - name: Validate NES graphics and generate Godot test project
         run: |
           python tests/test_renderer.py
+          python tests/test_unique_tiles.py
           python tests/test_sprite_editor.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
       - name: Download official Godot editor 4.7.2
         run: |

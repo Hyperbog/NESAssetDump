@@ -95,6 +95,19 @@ The synthetic-ROM tests require Playwright, Pillow, and Chromium:
 ```sh
 python tests/test_renderer.py
 python tests/test_sprite_editor.py
+python tests/test_unique_tiles.py
 ```
 
 The new [Godot validation workflow](.github/workflows/godot-validation.yml) extracts a synthetic sprite export into a temporary Godot project and runs official Godot 4.7.2 in headless mode. Its script verifies the imported sheet texture, animation names, frame counts, FPS, looping settings, and `AnimatedSprite2D` scene. No copyrighted ROM assets are included in these tests. CI results, rather than mere presence of the workflow, determine whether Godot import is verified.
+
+## Unique 8×8 atlas and duplicate detection (v0.5)
+
+Use **Unique 8×8 tile atlas** to analyze the currently selected CHR-ROM bank or **All tiles**. Exact duplicates are identified by comparing all 16 source bytes of each 8×8 2bpp tile. This is independent of the displayed palette, and **does not** consider flip/rotation equivalence.
+
+1. Select a ROM and graphics source, and choose bank/all tiles and atlas columns.
+2. Click **Analyze duplicate tiles** to count repeated raw patterns and inspect the compact sheet. Clicking a unique tile selects its first original ROM occurrence in the main inspector.
+3. Click **Export unique atlas ZIP**, which contains `unique_tiles.png`, exact `unique_tiles.chr` (or `.bin` for experimental PRG scans), `unique_tiles.json`, and `README.txt`.
+
+The JSON schema `nes-asset-unique-tiles-v1` preserves source ROM offsets, the selected range's `firstOriginalTile`, every unique atlas tile's location and occurrence count, and `originalToAtlasIndex`. The Nth mapping entry locates source tile `firstOriginalTile + N` in the unique atlas. Manual palette assignments remain associated with **original** tile indices in metadata; the PNG uses one chosen preview palette so duplicates are not incorrectly split by color. The metadata labels PRG-ROM scans as experimental, not confirmed graphics.
+
+A regression test, `python tests/test_unique_tiles.py`, validates exact deduplication, source offset mapping, exported tile bytes and PNG pixels, and bank-change invalidation with a synthetic freely generated ROM.

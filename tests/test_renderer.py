@@ -29,6 +29,7 @@ def inline_test_html():
     html = html.replace('<link rel="stylesheet" href="styles.css">', '<style>' + (ROOT / 'styles.css').read_text() + '</style>')
     html = html.replace('<script defer src="renderer.js"></script>', '<script>' + (ROOT / 'renderer.js').read_text() + '</script>')
     html = html.replace('<script defer src="sprite_editor.js"></script>', '<script>' + (ROOT / 'sprite_editor.js').read_text() + '</script>')
+    html = html.replace('<script defer src="unique_tiles.js"></script>', '<script>' + (ROOT / 'unique_tiles.js').read_text() + '</script>')
     return html
 
 
