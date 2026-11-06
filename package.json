@@ -1,0 +1,53 @@
+{
+  "name": "nesassetdump",
+  "version": "0.2.0",
+  "description": "Local NES graphics and palette atlas ripper for Godot",
+  "private": true,
+  "license": "MIT",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "check": "node --check main.cjs && node --check renderer.js"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.1"
+  },
+  "build": {
+    "appId": "dev.hyperbog.nesassetdump",
+    "productName": "NES Asset Dump",
+    "asar": true,
+    "files": [
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "main.cjs",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.graphics-design"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Graphics"
+    }
+  }
+}
