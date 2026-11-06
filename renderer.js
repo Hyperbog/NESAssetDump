@@ -23,7 +23,7 @@ function readNES(b,name){
  const prgOffset=16+trainer,chrOffset=prgOffset+prgSize;
  if(!Number.isSafeInteger(prgSize)||!Number.isSafeInteger(chrSize)||prgSize<0||chrSize<0||prgSize+chrOffset>Number.MAX_SAFE_INTEGER)throw Error('Invalid ROM size in header.');
  if(prgSize===0||b.length<chrOffset+chrSize)throw Error('Truncated or invalid PRG/CHR data.');
- return {name,nes2,mapper,prgSize,chrSize,prgOffset,chrOffset,prg:b.subarray(prgOffset,chrOffset),chr:b.subarray(chrOffset,chrOffset+chrSize),dump:null,assignments:new Map(),variants:null};
+ return {name,romCRC32:hex(crc32(b),8),nes2,mapper,prgSize,chrSize,prgOffset,chrOffset,prg:b.subarray(prgOffset,chrOffset),chr:b.subarray(chrOffset,chrOffset+chrSize),dump:null,assignments:new Map(),variants:null};
 }
 const CRC_TABLE=Uint32Array.from({length:256},(_,i)=>{let v=i;for(let b=0;b<8;b++)v=v&1?0xEDB88320^(v>>>1):v>>>1;return v>>>0});
 function crc32(bytes){let n=0xffffffff;for(const v of bytes)n=CRC_TABLE[(n^v)&255]^(n>>>8);return (n^0xffffffff)>>>0}
@@ -285,7 +285,60 @@ const drop=$('drop');drop.addEventListener('dragover',e=>{e.preventDefault();dro
 
 
 let spriteCRCSource=null,spriteCRCValue='';
+function workspaceSnapshotGraphics(){
+ if(!rom)throw Error('Load a ROM first.');
+ return {schema:'nes-asset-graphics-workspace-v1',game:rom.name,romCRC32:rom.romCRC32,mapper:rom.mapper,
+  sourceKind,sourceCRC32:hex(crc32(sourceData),8),
+  options:{bankSize:ui.bankSize.value,bank:ui.bank.value,scope:ui.scope.value,cols:ui.cols.value,
+   transparent:ui.transparent.checked,paletteLayer:ui.paletteLayer.value,paletteGroup:ui.paletteGroup.value,
+   tilePaletteMode:document.getElementById('tilePaletteMode').value},
+  activeVariant:{name:activeVariant().name,kind:activeVariant().kind,offset:activeVariant().offset},
+  importedVariants:variants.filter(v=>v.kind==='imported'||v.kind==='project').map(v=>({name:v.name,kind:v.kind,data:Array.from(v.data)})),
+  masterRGB:masterColors.map(rgb=>[...rgb]),assignments:Object.fromEntries(assignments),
+  verifiedRuntime:false};
+}
+function restoreWorkspaceGraphics(p){
+ if(!rom||!p||p.schema!=='nes-asset-graphics-workspace-v1')throw Error('Invalid graphics workspace or no ROM loaded.');
+ if(p.romCRC32!==rom.romCRC32||p.mapper!==rom.mapper)throw Error('Workspace ROM CRC32/mapper mismatch: load the matching ROM revision.');
+ if(!['chr','prg'].includes(p.sourceKind)||(p.sourceKind==='chr'&&!rom.chrSize))throw Error('Saved graphics source is unavailable.');
+ const source=p.sourceKind==='chr'?rom.chr:rom.prg;
+ if(p.sourceCRC32!==hex(crc32(source),8))throw Error('Workspace source checksum mismatch.');
+ const opts=p.options;
+ const has=(id,v)=>[...document.getElementById(id).options].some(o=>o.value===v);
+ for(const id of ['bankSize','scope','cols','paletteLayer','paletteGroup','tilePaletteMode'])
+  if(!opts||typeof opts[id]!=='string'||!has(id,opts[id]))throw Error('Invalid workspace setting: '+id);
+ if(!Number.isInteger(Number(opts.bank))||Number(opts.bank)<0||Number(opts.bank)>=Math.ceil(source.length/Number(opts.bankSize)))throw Error('Invalid bank number.');
+ if(typeof opts.transparent!=='boolean')throw Error('Invalid transparency setting.');
+ if(!Array.isArray(p.masterRGB)||p.masterRGB.length!==64||p.masterRGB.some(rgb=>!Array.isArray(rgb)||rgb.length!==3||rgb.some(v=>!Number.isInteger(v)||v<0||v>255)))throw Error('Invalid RGB master palette.');
+ if(!Array.isArray(p.importedVariants)||p.importedVariants.length>32)throw Error('Invalid imported palette list.');
+ for(const v of p.importedVariants)if(!v||!['imported','project'].includes(v.kind)||typeof v.name!=='string'||v.name.length>180||!Array.isArray(v.data)||![16,32].includes(v.data.length)||v.data.some(n=>!Number.isInteger(n)||n<0||n>63))throw Error('Invalid saved palette data.');
+ if(!p.assignments||typeof p.assignments!=='object'||Array.isArray(p.assignments)||Object.keys(p.assignments).length>200000)throw Error('Invalid tile assignments.');
+ const next=new Map();for(const [key,v] of Object.entries(p.assignments)){
+  const m=/^(chr|prg):(0|[1-9][0-9]*)$/.exec(key);
+  if(!m||!Number.isSafeInteger(Number(m[2]))||Number(m[2]) >= (m[1]==='chr'?rom.chr:rom.prg).length/16||!Number.isInteger(v)||v<0||v>3)throw Error('Invalid tile assignment: '+key);
+  next.set(key,v);
+ }
+ if(!p.activeVariant||typeof p.activeVariant.name!=='string'||typeof p.activeVariant.kind!=='string')throw Error('Invalid selected palette.');
+ const available=variants.filter(v=>v.kind==='preview'||v.kind==='candidate').concat(p.importedVariants.map(v=>({name:v.name,kind:v.kind,offset:null})));
+ if(!available.some(v=>v.name===p.activeVariant.name&&v.kind===p.activeVariant.kind&&v.offset===(p.activeVariant.offset??null)))throw Error('Saved palette was not found.');
+ // From this point onward, all input has been checked. Update source first (also resets sprite editor).
+ ui.source.value=p.sourceKind;updateSource();
+ assignments=rom.assignments=next;
+ variants=rom.variants=variants.filter(v=>v.kind==='preview'||v.kind==='candidate');
+ for(let i=0;i<p.importedVariants.length;i++){const v=p.importedVariants[i];variants.push({id:'restored'+i,name:v.name,kind:v.kind,data:new Uint8Array(v.data),offset:null})}
+ masterColors=p.masterRGB.map(rgb=>[...rgb]);rebuildVariantSelect();
+ const idx=variants.findIndex(v=>v.name===p.activeVariant.name&&v.kind===p.activeVariant.kind&&v.offset===(p.activeVariant.offset??null));
+ if(idx<0)throw Error('Selected workspace palette could not be restored.');
+ for(const id of ['bankSize','scope','cols','paletteLayer','paletteGroup'])ui[id].value=opts[id];
+ document.getElementById('tilePaletteMode').value=opts.tilePaletteMode;
+ ui.transparent.checked=opts.transparent;refreshBanks();ui.bank.value=opts.bank;ui.paletteVariant.value=String(idx);render();
+ window.dispatchEvent(new Event('nes:workspace'));
+}
+
 window.NES_ASSET_API={
+ workspaceSnapshotGraphics,restoreWorkspaceGraphics,
+ getROMIdentity:()=>rom?{name:rom.name,mapper:rom.mapper,romCRC32:rom.romCRC32}:null,
+ getSourceValidationContext:kind=>{if(!rom)return null;const data=kind==='chr'?rom.chr:kind==='prg'?rom.prg:null;return data?{mapper:rom.mapper,sourceKind:kind,crc32:hex(crc32(data),8),sourceData:data}:null},
  libraryEntries:()=>library.map((e,i)=>({index:i,name:e.name})),
  readROMAtIndex:async i=>{
   const e=library[i];if(!e)throw Error('ROM library index out of range.');
