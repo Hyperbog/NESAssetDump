@@ -114,25 +114,35 @@ A regression test, `python tests/test_unique_tiles.py`, validates exact deduplic
 
 ## Searchable tile catalog and native Godot TileSet (v0.6)
 
-Use **Section 8 — Searchable tile catalog** after loading a ROM to search the entire selected graphics source, independent of the visible CHR bank. Search absolute tile indices in decimal or `0x` hexadecimal, raw tile-byte prefixes such as `hex:FF 00`, or filter for unique, repeated, blank, and nonblank 16-byte patterns. The preview is paginated at 128 tiles; click a result to inspect its original source index and ROM offset.
+After loading a ROM, use **Section 8 — Searchable tile catalog** to search the entire selected graphics source, irrespective of currently selected CHR bank. Enter an absolute tile number (decimal or `0x` hexadecimal), a raw-pattern prefix like `hex:FF 00`, or select the unique, repeated, blank, and nonblank filters. The paged preview shows 128 matching tiles at once. Click a result to inspect its absolute original tile index and offset.
 
-**Export filtered Godot TileSet ZIP** exports every matching tile, not just the preview page, in the game-specific folder `nes_assets/<game>_<sourceCRC32>/tile_catalog/`:
+**Export filtered Godot TileSet ZIP** exports every matching tile, not only the visible preview page, with the following layout:
 
-- `tileset_atlas.png` — 8×8 pixels per tile, 16 columns, no margins or separation.
-- `tileset.tres` — native Godot 4 `TileSet` with a `TileSetAtlasSource` (source ID 0), registering each exported tile.
-- `tileset_metadata.json` — original tile indices, byte offsets, 8 KiB bank indices, atlas coordinates, duplicate counts, and palette provenance.
-- `README.txt` — extraction and import instructions.
+- `nes_assets/<game>_<sourceCRC32>/tile_catalog/tileset_atlas.png` — 8×8 pixel grid, 16 columns, no spacing.
+- `nes_assets/<game>_<sourceCRC32>/tile_catalog/tileset.tres` — a Godot 4 `TileSet` containing a `TileSetAtlasSource` (ID 0) with individually registered tiles.
+- `nes_assets/<game>_<sourceCRC32>/tile_catalog/tileset_metadata.json` — original tile indices, raw offsets, 8 KiB source bank indexes, atlas coordinates, and palette provenance.
+- `nes_assets/<game>_<sourceCRC32>/tile_catalog/README.txt` — Godot import steps.
 
-Extract the `nes_assets/` folder into your Godot project root and assign the exported `tileset.tres` to a `TileMapLayer` node's TileSet property. Set nearest-neighbor filtering. **Palette colors are previews, not verified per-sprite/background in-game associations.** CHR-ROM 2bpp decoding is exact; PRG-ROM scanning in CHR-RAM games remains experimental and can include non-graphics data. Large filtered selections may need smaller limits to fit into browser canvas dimensions.
+Extract `nes_assets/` into the **Godot project root**, then assign `res://nes_assets/<game>_<sourceCRC32>/tile_catalog/tileset.tres` to a `TileMapLayer` node. The PNG shows **one selected preview palette** and does not automatically recover authentic sprite/background palette assignments. CHR-ROM tile bytes are verified; PRG scanning for CHR-RAM games remains experimental. Large unfiltered PRG scans may exceed browser canvas limits: narrow the filter to export a smaller selection.
 
+## Palette-aware Godot TileSet atlas (v0.7)
 
-## Palette-aware Godot TileSet exports (v0.7)
+The **TileSet palette rendering** selector has two modes:
 
-The **TileSet palette rendering** selector supports two modes:
+- **Use manually assigned sub-palettes** (default): tiles with a manually assigned group 0–3 are rendered with that group, and other tiles use the selected default sub-palette. The TileSet preview and exported PNG match.
+- **Use one selected sub-palette for all tiles:** legacy uniform rendering; existing assignments are retained in JSON without affecting the PNG.
 
-- **Use manually assigned sub-palettes** (default): tiles painted with a sub-palette 0–3 in the main ROM atlas render using that group. Unassigned tiles use the currently selected default sub-palette.
-- **Use one selected sub-palette for all tiles:** preserves the v0.6 uniform rendering. Existing assignments remain in JSON but do not affect the PNG.
+The exported `tileset_metadata.json` records each original tile index, `manuallyAssignedGroup`, `effectivePaletteGroup`, `paletteGroupSource`, selected palette indices (when available), and a statement that runtime assignment is **not verified**. Paint a tile's group in the main atlas before exporting. RGB values use the selected reference master palette.
 
-The generated `tileset_metadata.json` documents the selected palette's raw NES indices (when available), `manuallyAssignedGroup`, `effectivePaletteGroup`, and `paletteGroupSource` for every tile.
+This is a user-directed workflow and **does not automatically infer real game palettes from CHR-ROM**.
 
-These groups are **user annotations, not automatically recovered runtime palette assignments**. Exported RGB colors use the currently selected approximate master palette.
+## Batch export for NES collections (v0.8)
+
+1. Load a ZIP containing NES ROMs, or select multiple `.nes` files.
+2. In **Section 9**, select whether NES pixel index 0 should be transparent in exported PNG previews.
+3. Click **Export all games — CHR-ROM PNG banks + report**.
+4. Extract the generated ZIP. Each CHR-ROM game has its own `nes_assets/batch/game_.../` folder with original `CHR` bytes, bank PNGs (8×8 tiles, 16 columns), and `tiles.json`. The root contains `batch_index.json` and `compatibility_report.csv`.
+
+**CHR-ROM extraction is byte-exact**, and the exported PNGs preserve all 2-bit pixel values as grayscale previews. **CHR-RAM games are reported but not falsely ripped**: game code may decompress or generate their tile data at runtime. Batch export does not infer runtime sprite palettes, sprite assemblies, or stage layouts.
+
+The application builds the batch ZIP in memory with a **256 MiB output limit**; split very large collections into smaller sets if necessary.
