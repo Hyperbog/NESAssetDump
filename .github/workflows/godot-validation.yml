@@ -29,6 +29,7 @@ jobs:
           python tests/test_unique_tiles.py
           python tests/test_tile_catalog.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
           python tests/test_sprite_editor.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
+          python tests/test_sprite_pairs.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
       - name: Download official Godot editor 4.7.2
         run: |
           curl -fLsS --retry 3 -o "$RUNNER_TEMP/godot.zip" \
@@ -45,3 +46,6 @@ jobs:
       - name: Validate Godot TileSet atlas and tiles
         run: |
           "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64" --headless --path "$RUNNER_TEMP/godot-fixture" --script res://godot_verify_tileset.gd
+      - name: Verify native 8x16 sprite-pair TileSet
+        run: |
+          "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64" --headless --path "$RUNNER_TEMP/godot-fixture" --script res://godot_verify_pairs.gd
