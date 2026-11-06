@@ -1,7 +1,7 @@
 'use strict';
 (() => {
  const $ = id => document.getElementById(id);
- const ids = ['tileSearch','tileFilter','tileFind','tilePrev','tileNext','tilePage','tileCatalog','tileCatalogStatus','tileSetExport'];
+ const ids = ['tileSearch','tileFilter','tileFind','tilePrev','tileNext','tilePage','tileCatalog','tileCatalogStatus','tileSetExport','tilePaletteMode'];
  const ui = Object.fromEntries(ids.map(id => [id,$(id)]));
  if (Object.values(ui).some(v=>!v)) return;
  const encode=new TextEncoder(), pageSize=128, columns=16;
@@ -56,21 +56,26 @@
   }
   pageIndex=0;render(c);ui.tileSetExport.disabled=!matched.length;
  }
- function colors(c){
+ function colors(c,group=c.paletteGroup){
   if(!c.variant.data)return [[0,0,0],[85,85,85],[170,170,170],[255,255,255]];
   const shift=c.variant.data.length===32&&c.paletteLayer==='sprite'?16:0;
   return Array.from({length:4},(_,v)=>{
-   const pos=c.paletteLayer==='background'&&v===0?0:shift+4*c.paletteGroup+v;
+   const pos=c.paletteLayer==='background'&&v===0?0:shift+4*group+v;
    return c.masterColors[(c.variant.data[pos]??0)&63];
   });
  }
- function draw(c,indices){
+ function selectedGroup(c,tile,perTile){
+   const assigned=c.assignments.get(`${c.sourceKind}:${tile}`);
+   return perTile && Number.isInteger(assigned) && assigned>=0 && assigned<=3 ? assigned : c.paletteGroup;
+  }
+  function draw(c,indices,perTile=false){
   const width=columns*8,height=Math.max(1,Math.ceil(indices.length/columns))*8;
   if(height>16384||width*height>67108864)throw Error('Atlas exceeds canvas limits. Narrow the tile filter.');
   const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
   const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas rendering unavailable.');
-  const image=ctx.createImageData(width,height),palette=colors(c);
+  const image=ctx.createImageData(width,height);
   indices.forEach((tile,n)=>{
+    const palette=colors(c,selectedGroup(c,tile,perTile));
    const off=tile*16,dx=n%columns*8,dy=Math.floor(n/columns)*8;
    for(let y=0;y<8;y++){
     const lo=c.sourceData[off+y],hi=c.sourceData[off+8+y];
@@ -87,27 +92,33 @@
   const pages=Math.max(1,Math.ceil(matched.length/pageSize));
   pageIndex=Math.min(Math.max(0,pageIndex),pages-1);
   const visible=matched.slice(pageIndex*pageSize,(pageIndex+1)*pageSize);
-  const image=draw(c,visible);
+  const image=draw(c,visible,ui.tilePaletteMode.value==='manual');
   ui.tileCatalog.width=image.width;ui.tileCatalog.height=image.height;
   ui.tileCatalog.getContext('2d').drawImage(image,0,0);
   ui.tilePage.textContent=`Page ${pageIndex+1} / ${pages}`;
   ui.tilePrev.disabled=pageIndex===0;ui.tileNext.disabled=pageIndex>=pages-1;
   ui.tileCatalogStatus.textContent=`${matched.length.toLocaleString()} matching tiles out of ${catalog.tiles.toLocaleString()} (${catalog.counts.size.toLocaleString()} distinct patterns). Showing ${visible.length} on this page. ${c.sourceKind==='chr'?'Exact CHR-ROM bytes':'EXPERIMENTAL PRG-ROM scan; blocks may not be graphics'}. Click a tile to inspect it in the original atlas.`;
  }
- function metadata(c,indices){
-  return {
-   schema:'nes-asset-godot-tileset-v1',game:c.name,mapper:c.mapper,sourceKind:c.sourceKind,
+ function metadata(c,indices,perTile){
+  const hasIndices=Boolean(c.variant.data);
+  const assignedCount=indices.filter(t=>c.assignments.has(`${c.sourceKind}:${t}`)).length;
+  return {schema:'nes-asset-godot-tileset-v1',game:c.name,mapper:c.mapper,sourceKind:c.sourceKind,
    verifiedTileSource:c.sourceKind==='chr',sourceCRC32:c.crc32,tileSize:[8,8],columns,atlasSourceId:0,
-   palette:{name:c.variant.name,origin:c.variant.kind,group:c.paletteGroup,layer:c.paletteLayer,verifiedRuntime:false,transparentIndex0:c.transparent,
-    warning:'One display palette is used for the entire atlas. Manual palette assignments are not painted into the PNG.'},
-   tiles:indices.map((tile,n)=>({tileIndex:tile,bank8KiB:Math.floor(tile/512),
-    romFileOffset:c.sourceBase===null?null:c.sourceBase+tile*16,byteOffset:tile*16,
-    atlasCoords:[n%columns,Math.floor(n/columns)],atlasSourceId:0,alternativeId:0,
-    occurrencesInSource:catalog.counts.get(catalog.keys[tile]),
-    manuallyAssignedGroup:c.assignments.get(`${c.sourceKind}:${tile}`)??null})),
-   warning:c.sourceKind==='chr'?'Raw CHR tiles do not identify original sprites/backgrounds or their palettes.':
-    'PRG scan is not a verified graphics decoder; results may contain non-graphics data.'
-  };
+   palette:{name:c.variant.name,origin:c.variant.kind,layer:c.paletteLayer,
+    group:c.paletteGroup,exportMode:perTile?'manual-per-tile':'uniform-preview',
+    rawNESIndices:hasIndices?Array.from(c.variant.data):null,assignedTileCount:assignedCount,
+    verifiedRuntime:false,transparentIndex0:c.transparent,
+    warning:perTile?'The atlas uses user-assigned sub-palettes when present, otherwise the selected default group. Assignments are not verified game palette usage.':
+     'The atlas uses one selected sub-palette for every tile; manual assignments remain recorded but do not affect the PNG.'},
+   tiles:indices.map((tile,n)=>{
+    const manual=c.assignments.get(`${c.sourceKind}:${tile}`);
+    return {tileIndex:tile,bank8KiB:Math.floor(tile/512),romFileOffset:c.sourceBase===null?null:c.sourceBase+tile*16,
+     byteOffset:tile*16,atlasCoords:[n%columns,Math.floor(n/columns)],atlasSourceId:0,alternativeId:0,
+     occurrencesInSource:catalog.counts.get(catalog.keys[tile]),manuallyAssignedGroup:manual??null,
+     effectivePaletteGroup:selectedGroup(c,tile,perTile),paletteGroupSource:perTile&&manual!==undefined?'manual':'default'};
+   }),
+   warning:c.sourceKind==='chr'?'Raw CHR graphics do not identify original sprites, backgrounds, or authentic palette associations.':
+    'PRG scans are experimental and may include arbitrary non-graphics data.'};
  }
  function tileset(indices,prefix){
   const lines=['[gd_resource type="TileSet" load_steps=3 format=3]','',
@@ -124,16 +135,16 @@
   ui.tileSetExport.disabled=true;
   try{
    const prefix=`nes_assets/${safe(c.name)}_${c.crc32.toLowerCase()}/tile_catalog/`;
-   const canvas=draw(c,matched),png=new Uint8Array(await (await c.pngBlob(canvas)).arrayBuffer());
+   const canvas=draw(c,matched,ui.tilePaletteMode.value==='manual'),png=new Uint8Array(await (await c.pngBlob(canvas)).arrayBuffer());
    const files=[
     {name:prefix+'tileset_atlas.png',data:png},
     {name:prefix+'tileset.tres',data:encode.encode(tileset(matched,prefix))},
-    {name:prefix+'tileset_metadata.json',data:encode.encode(JSON.stringify(metadata(c,matched),null,2))},
+    {name:prefix+'tileset_metadata.json',data:encode.encode(JSON.stringify(metadata(c,matched,ui.tilePaletteMode.value==='manual'),null,2))},
     {name:prefix+'README.txt',data:encode.encode('Extract the nes_assets/ directory into the Godot project root.\n'+
      `Load res://${prefix}tileset.tres in TileMapLayer.tile_set.\n`+
      'TileSet source ID = 0. Atlas coordinates are listed in tileset_metadata.json.\n'+
      '8x8 grid; zero margins/separation; use nearest texture filtering.\n'+
-     'Palette colors are previews, not verified game associations.\n')}
+     'User-assigned sub-palettes can color individual tiles; palette associations remain unverified.\n')}
    ];
    c.download(c.zipStore(files),`${safe(c.name)}_${c.crc32.toLowerCase()}_${c.sourceKind}_godot_tileset.zip`);
    ui.tileCatalogStatus.textContent=`Exported ${matched.length.toLocaleString()} tiles to Godot TileSet atlas and JSON lookup.`;
@@ -153,7 +164,9 @@
   const tile=matched[pageIndex*pageSize+y*columns+x];
   if(tile!==undefined&&x>=0&&x<columns)window.NES_ASSET_API.inspectTile(tile);
  });
- ui.tileSetExport.addEventListener('click',exportZip);
+ ui.tilePaletteMode.addEventListener('change',()=>{const c=context();if(current(c))render(c)});
+  window.addEventListener('nes:tile',()=>{const c=context();if(current(c)&&matched.length)render(c)});
+  ui.tileSetExport.addEventListener('click',exportZip);
  for(const event of ['nes:game','nes:source'])window.addEventListener(event,reset);
  for(const id of ['paletteVariant','paletteLayer','paletteGroup','transparent'])$(id).addEventListener('change',()=>{
   const c=context();if(current(c))try{render(c)}catch(e){ui.tileCatalogStatus.textContent=e.message}

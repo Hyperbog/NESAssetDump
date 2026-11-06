@@ -124,3 +124,15 @@ Use **Section 8 — Searchable tile catalog** after loading a ROM to search the 
 - `README.txt` — extraction and import instructions.
 
 Extract the `nes_assets/` folder into your Godot project root and assign the exported `tileset.tres` to a `TileMapLayer` node's TileSet property. Set nearest-neighbor filtering. **Palette colors are previews, not verified per-sprite/background in-game associations.** CHR-ROM 2bpp decoding is exact; PRG-ROM scanning in CHR-RAM games remains experimental and can include non-graphics data. Large filtered selections may need smaller limits to fit into browser canvas dimensions.
+
+
+## Palette-aware Godot TileSet exports (v0.7)
+
+The **TileSet palette rendering** selector supports two modes:
+
+- **Use manually assigned sub-palettes** (default): tiles painted with a sub-palette 0–3 in the main ROM atlas render using that group. Unassigned tiles use the currently selected default sub-palette.
+- **Use one selected sub-palette for all tiles:** preserves the v0.6 uniform rendering. Existing assignments remain in JSON but do not affect the PNG.
+
+The generated `tileset_metadata.json` documents the selected palette's raw NES indices (when available), `manuallyAssignedGroup`, `effectivePaletteGroup`, and `paletteGroupSource` for every tile.
+
+These groups are **user annotations, not automatically recovered runtime palette assignments**. Exported RGB colors use the currently selected approximate master palette.
