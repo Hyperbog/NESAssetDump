@@ -2,10 +2,15 @@ extends SceneTree
 # Load the actual Godot resource; do not validate only its textual representation.
 func _initialize() -> void:
     var folders := DirAccess.get_directories_at("res://nes_assets")
-    if folders.size() != 1:
-        _fail("Expected one per-game TileSet directory.")
+    var root := ""
+    for folder in folders:
+        var candidate := "res://nes_assets/" + folder + "/tile_catalog/"
+        if FileAccess.file_exists(candidate + "tileset.tres"):
+            root = candidate
+            break
+    if root.is_empty():
+        _fail("No TileSet export directory was found.")
         return
-    var root := "res://nes_assets/" + folders[0] + "/tile_catalog/"
     var image := load(root + "tileset_atlas.png") as Texture2D
     var tileset := load(root + "tileset.tres") as TileSet
     if image == null or tileset == null:
