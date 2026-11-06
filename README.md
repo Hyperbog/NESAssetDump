@@ -64,28 +64,37 @@ This repository is the source of truth for the desktop app. Native source files 
 
 No copyrighted game ROMs, original game graphics, or user asset dumps are distributed with this app.
 
-## Sprite assembly and Godot animation export (v0.3)
+## Multi-animation sprite assembly and Godot export (v0.4)
 
-Use the **Sprite assembly & animation** section to assemble individual 8×8 tiles into sprites without an emulator:
+The **Sprite assembly & animation** workspace lets you create an editable sprite project containing several named animations, such as `idle`, `walk`, and `attack`. Each clip has its own frames (up to 64), speed (1–60 FPS), and looping setting. Up to 16 clips and 512 total frames are supported in one project.
 
-1. Load a ROM and select a CHR tile in **Atlas preview**.
-2. Set the sprite width/height in **8px tiles** (1–16 per axis). Click a grid cell to place the selected tile; right-click to erase it. Choose the sprite palette group in **Palette variants** before placing a tile (each cell retains its own group).
-3. **Duplicate frame** to make the next animation frame, edit its cells, and repeat (up to 64 frames). Use **Play** to preview the current single-clip animation. Change FPS (1–60) and loop behavior.
-4. **Save sprite project JSON** for later editing. Reopen the same ROM and graphics source before importing the saved project. A saved project preserves cell tile indices, chosen sub-palette groups, current palette data, and master RGB colors. The app verifies ROM graphics data/mapper on import.
-5. **Export Godot 4 SpriteFrames ZIP** to create a ready-to-import sprite animation.
+1. Open a ROM and select an 8×8 tile in the CHR atlas.
+2. Choose a sprite size (1–16 tiles per axis); click the editing grid to place the selected tile, or right-click to erase it. Each placed tile retains your selected sprite palette group.
+3. **Duplicate frame** to add poses. Use **New animation**, **Rename**, **Delete animation**, and the animation dropdown to manage separate clips.
+4. **Save sprite project JSON** to preserve animation names, grids, per-frame tile indices, palette groups, FPS, and looping. Existing v0.3 single-clip project files are imported and converted to the v2 multi-clip schema.
+5. **Export Godot 4 SpriteFrames ZIP** to create an atlas and Godot resources for *all* animations at once.
 
-### Godot export package
+### Export package and importing it
 
-Unzip the archive into the **root of your Godot project**, preserving the `nes_assets/` folder. Each package contains:
+Unzip the exported folder directly into your **Godot 4 project root**, retaining the `nes_assets/` directory:
 
-- `sprite_sheet.png` — lossless assembled frames, side by side with no margins, native resolution, alpha for transparent sprite pixel value 0.
-- `sprite_frames.tres` — Godot 4 `SpriteFrames` with an `AtlasTexture` region per frame, and your animation name, FPS and loop setting.
-- `sprite_scene.tscn` — ready-to-instance `AnimatedSprite2D` scene with nearest texture filtering and the exported SpriteFrames.
-- `sprite_project.json` — editable source project, including palette provenance and manual tile assignments.
-- `README.txt` — import instructions.
+- `sprite_sheet.png` — unscaled RGBA sheet, packed in rows, with every frame occupying an exactly sized region.
+- `sprite_frames.tres` — a `SpriteFrames` resource containing every named clip, its frame rectangles, playback FPS, and loop setting.
+- `sprite_scene.tscn` — an `AnimatedSprite2D` scene with nearest filtering, initialized to the first animation.
+- `sprite_project.json` — editable multi-animation project with selected palette data and provenance.
+- `README.txt` — instructions and accuracy limitations.
 
-Open the scene or assign `sprite_frames.tres` to any Godot 4 `AnimatedSprite2D`. The export uses project-root `res://nes_assets/...` resource paths, so **keep the folder structure unchanged**.
+Open `sprite_scene.tscn` in Godot, or assign `sprite_frames.tres` to an existing `AnimatedSprite2D` node. Resource paths assume the ZIP folder structure is preserved under `res://nes_assets/`.
 
-One sprite project currently exports **one animation clip**. Start separate projects for idle, walk, attack, and similar actions. All composition, animation frame ordering, and palette-to-tile associations are **manual**, not proven to match the original game. For CHR-RAM titles, the experimental PRG scan limitation still applies.
+**Accuracy:** These sprite assemblies, colors, and timings are edited by the user; they are not automatically recovered from original NES gameplay. CHR-RAM game graphics found with the PRG byte scanner remain experimental.
 
-Tests: run `python tests/test_renderer.py` and `python tests/test_sprite_editor.py` in an environment with Playwright, Chromium, and Pillow. The tests use entirely synthetic ROMs and do not redistribute game assets. Godot 4 import is based on its documented `SpriteFrames`/`AtlasTexture` text resource format but should be checked in an installed Godot editor before production use.
+### Tests
+
+The synthetic-ROM tests require Playwright, Pillow, and Chromium:
+
+```sh
+python tests/test_renderer.py
+python tests/test_sprite_editor.py
+```
+
+The new [Godot validation workflow](.github/workflows/godot-validation.yml) extracts a synthetic sprite export into a temporary Godot project and runs official Godot 4.7.2 in headless mode. Its script verifies the imported sheet texture, animation names, frame counts, FPS, looping settings, and `AnimatedSprite2D` scene. No copyrighted ROM assets are included in these tests. CI results, rather than mere presence of the workflow, determine whether Godot import is verified.
