@@ -36,7 +36,14 @@
 <button id="tileSetExport" disabled>Export filtered Godot TileSet ZIP</button><label>TileSet palette rendering <select id="tilePaletteMode"><option value="manual">Use manually assigned sub-palettes (default for unassigned tiles)</option><option value="uniform">Use one selected sub-palette for all tiles</option></select></label>
 <p><small>The TileSet includes a PNG atlas, a Godot 4 TileSet .tres with individually registered 8×8 tiles, and JSON mapping every selected atlas position to the original tile and bank. Optional manual palette assignments color each exported tile; original runtime assignments are not inferred.</small></p>
 </section>
-<section><h2>9. Batch export NES collection</h2>
+<section><h2>9. Save &amp; reopen workspace</h2>
+<p class="hint">Save the current ROM's palette imports, manual per-tile color assignments, graphics settings, and named sprite animations together. Workspace files do not contain ROM bytes. Load the matching ROM before restoring.</p>
+<button id="workspaceSave" disabled>Save workspace JSON</button>
+<label>Load workspace <input id="workspaceLoad" type="file" accept=".json,application/json"></label>
+<p id="workspaceStatus" role="status" class="hint">Load a ROM to save a workspace.</p>
+<small>Workspaces are validated against the full ROM CRC32 and graphics source CRC32. A different ROM revision will not be silently accepted. User-created palettes and sprite assemblies are not verified original-game data.</small>
+</section>
+<section><h2>10. Batch export NES collection</h2>
 <p class="hint">Export exact CHR-ROM tile banks from every loaded NES game in a single ZIP. Games with CHR-RAM are reported rather than misrepresented as raw graphics. No emulator setup required.</p>
 <label><input id="batchTransparent" type="checkbox" checked> Transparent pixel value 0 (sprite-friendly PNGs)</label>
 <button id="batchExport" disabled>Export all games — CHR-ROM PNG banks + report</button>
@@ -44,4 +51,4 @@
 <small>Outputs a game-specific directory containing 8×8 bank PNG atlases, original CHR-ROM bytes, and tile-offset JSON. The ZIP includes a compatibility CSV showing games that need a CHR-RAM decoder. PNG colors are grayscale previews, not confirmed game palettes.</small>
 </section>
 <section><h2>Godot 4 setup</h2><p>Set texture filtering to <strong>Nearest</strong>. Use <code>TileSetAtlasSource</code> with <code>texture_region_size = (8, 8)</code>, <code>margins = (0, 0)</code>, and <code>separation = (0, 0)</code>. For <code>Sprite2D</code>, enable regions; for <code>AnimatedSprite2D</code>, import frames from a sprite sheet.</p><small>Palette colors depend on game runtime state. Accurate sprite-palette association cannot be determined from CHR-ROM alone, although imported palette sets and manual associations can be preserved.</small></section>
-<script defer src="renderer.js"></script><script defer src="sprite_editor.js"></script><script defer src="unique_tiles.js"></script><script defer src="tile_catalog.js"></script><script defer src="batch_export.js"></script></body></html>
+<script defer src="renderer.js"></script><script defer src="sprite_editor.js"></script><script defer src="unique_tiles.js"></script><script defer src="tile_catalog.js"></script><script defer src="batch_export.js"></script><script defer src="workspace.js"></script></body></html>

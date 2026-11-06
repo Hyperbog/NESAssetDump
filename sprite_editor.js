@@ -52,7 +52,19 @@
  ui.spriteFps.addEventListener('change',setFps);ui.spriteLoop.addEventListener('change',()=>{current().loop=ui.spriteLoop.checked});
  ui.spritePlay.addEventListener('click',()=>{if(playing!==null)return stop();if(current().frames.length<2)return status('Add another frame to preview animation.');if(!setFps())return;playing=setInterval(()=>{if(frame===current().frames.length-1&&!current().loop){stop();return}frame=(frame+1)%current().frames.length;ui.spriteFrame.value=String(frame);draw()},1000/current().fps);ui.spritePlay.textContent='Stop'});
  ui.spriteSave.addEventListener('click',()=>{try{const c=ctx();c.download(new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),`${projectName()}_sprite_project.json`);status('Saved sprite project JSON.')}catch(e){status(e.message)}});
- ui.spriteLoad.addEventListener('change',async()=>{const file=ui.spriteLoad.files?.[0];ui.spriteLoad.value='';if(!file)return;try{if(file.size>2_000_000)throw Error('Sprite project exceeds 2 MB.');const p=JSON.parse(await file.text()),c=ctx();if(!c)throw Error('Load its ROM first.');const restored=validate(p,c);stop();width=p.widthTiles;height=p.heightTiles;animations=restored.map(a=>({name:a.name,fps:a.fps,loop:a.loop,frames:a.frames.map(f=>f.map(v=>v?{...v}:null))}));selected=frame=0;ui.spriteWidth.value=String(width);ui.spriteHeight.value=String(height);ui.spriteName.value=p.schema.endsWith('v1')?(cleanName(p.animation.name)||'sprite'):(p.projectName||'sprite');restorePalette(p);refreshAnimationList();refreshFrameList();draw();status(`Restored ${animations.length} animation(s), ${totalFrames()} frames from ${file.name}.`)}catch(e){status('Import failed: '+e.message)}});
+ function restoreSpriteProject(p,{restorePaletteData=true}={}){
+  const c=ctx();if(!c)throw Error('Load its ROM first.');
+  const restored=validate(p,c);
+  stop();width=p.widthTiles;height=p.heightTiles;
+  animations=restored.map(a=>({name:a.name,fps:a.fps,loop:a.loop,frames:a.frames.map(f=>f.map(v=>v?{...v}:null))}));
+  selected=frame=0;ui.spriteWidth.value=String(width);ui.spriteHeight.value=String(height);
+  ui.spriteName.value=p.schema.endsWith('v1')?(cleanName(p.animation.name)||'sprite'):(p.projectName||'sprite');
+  if(restorePaletteData)restorePalette(p);
+  refreshAnimationList();refreshFrameList();draw();
+  status(`Restored ${animations.length} animation(s), ${totalFrames()} frames.`);
+ }
+ window.NES_SPRITE_API={snapshot,validate:(p,c=ctx())=>validate(p,c),restore:restoreSpriteProject};
+ ui.spriteLoad.addEventListener('change',async()=>{const file=ui.spriteLoad.files?.[0];ui.spriteLoad.value='';if(!file)return;try{if(file.size>2_000_000)throw Error('Sprite project exceeds 2 MB.');const p=JSON.parse(await file.text()),c=ctx();if(!c)throw Error('Load its ROM first.');restoreSpriteProject(p);status(`Restored ${animations.length} animation(s), ${totalFrames()} frames from ${file.name}.`);}catch(e){status('Import failed: '+e.message)}});
  ui.spriteExport.addEventListener('click',exportAll);
  window.addEventListener('nes:game',()=>reset('Game changed; start a new project or import its saved project.'));
  window.addEventListener('nes:source',()=>reset('Graphics source changed; sprite frames cleared.'));

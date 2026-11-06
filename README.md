@@ -146,3 +146,13 @@ This is a user-directed workflow and **does not automatically infer real game pa
 **CHR-ROM extraction is byte-exact**, and the exported PNGs preserve all 2-bit pixel values as grayscale previews. **CHR-RAM games are reported but not falsely ripped**: game code may decompress or generate their tile data at runtime. Batch export does not infer runtime sprite palettes, sprite assemblies, or stage layouts.
 
 The application builds the batch ZIP in memory with a **256 MiB output limit**; split very large collections into smaller sets if necessary.
+
+## v0.9 workspace files
+
+Section **9 — Save & reopen workspace** exports a JSON workspace combining the current ROM's custom palettes, manually painted tile sub-palettes, tile preview settings, and named sprite animations. No ROM bytes are included.
+
+To restore, first load the **same** `.nes` ROM (including revision) and then select the workspace JSON. The app validates the whole-ROM CRC32, mapper and source CRC32 before accepting the graphics data. Switching games clears the active editing workspace; save your work before switching. Sprite project JSON import/export remains supported separately.
+
+Workspace colors and sprite arrangements remain user-authored; imported PRG palette candidates do not imply authentic runtime palette assignments.
+
+**Packaging fix:** `batch_export.js` is included in Electron builds starting with v0.9.
