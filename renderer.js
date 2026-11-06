@@ -94,7 +94,7 @@ async function selectGame(){
   // Scan for candidate palette sets; candidates are never presented as verified runtime colors.
   const candidates=paletteCandidates(rom.prg);
   for(const c of candidates)variants.push({id:'rom'+c.offset,name:`PRG palette candidate @0x${hex(rom.prgOffset+c.offset,6)} (${c.length}B)`,kind:'candidate',data:c.data,offset:rom.prgOffset+c.offset,confidence:'unverified'});
-  rebuildVariantSelect();updateSource();
+  rebuildVariantSelect();updateSource();window.dispatchEvent(new Event("nes:game"));
   ui.status.textContent=`${rom.name}\nMapper ${rom.mapper} | ${rom.nes2?'NES 2.0':'iNES'} | PRG ${sizeLabel(rom.prgSize)} | CHR-ROM ${sizeLabel(rom.chrSize)}${rom.chrSize?'': ' (CHR-RAM cartridge)'}\n${library.length} game(s) in library; ${candidates.length} candidate palette set(s) found in PRG.`;
  }catch(e){rom=null;error(`${entry.name}: ${e.message}`)}
 }
@@ -122,7 +122,7 @@ function updateSource(){if(!rom)return;const kind=ui.source.value;sourceKind=kin
  if(kind==='chr'){sourceData=rom.chr;sourceBase=rom.chrOffset;ui.sourceNote.textContent='Verified CHR-ROM: every 16-byte pattern is preserved exactly.'}
  else if(kind==='dump'){sourceData=rom.dump;sourceBase=null;ui.sourceNote.textContent='Imported runtime pattern bytes; which ROM bank supplied each tile may be unknown.'}
  else {sourceData=rom.prg;sourceBase=rom.prgOffset;ui.sourceNote.textContent='EXPERIMENTAL: these are PRG bytes interpreted as 2bpp tiles, not confirmed graphics. Games with CHR-RAM may use compression or custom layouts.'}
- ui.bank.value='0';refreshBanks();
+ ui.bank.value='0';refreshBanks();window.dispatchEvent(new Event("nes:source"));
 }
 function refreshBanks(){if(!rom)return;const old=Number(ui.bank.value)||0,amount=Math.ceil(sourceData.length/Number(ui.bankSize.value));ui.bank.replaceChildren();for(let i=0;i<amount;i++){const o=document.createElement('option');o.value=String(i);o.textContent=`Bank ${i} +0x${hex(i*Number(ui.bankSize.value),5)}`;ui.bank.append(o)}ui.bank.value=String(Math.min(old,amount-1));render()}
 function getView(){const bytes=Number(ui.bankSize.value),count=Math.floor(sourceData.length/16),first=ui.scope.value==='all'?0:Number(ui.bank.value)*bytes/16;return {start:first,count:ui.scope.value==='all'?count:Math.min(bytes/16,count-first),columns:Number(ui.cols.value)};}
@@ -153,7 +153,7 @@ function render(){if(!rom)return;try{
 function inspect(tile){if(!rom||tile<0||tile>=sourceData.length/16)return;chosen=tile;
  const tileImg=paintImage(tile,1,1);ui.detail.getContext('2d').clearRect(0,0,8,8);ui.detail.getContext('2d').drawImage(tileImg,0,0);
  const bytes=sourceData.subarray(tile*16,tile*16+16),location=sourceBase===null?'external dump':`0x${hex(sourceBase+tile*16,6)}`;
- ui.tileInfo.textContent=`Tile #${tile}\n${sourceKind.toUpperCase()} offset: 0x${hex(tile*16,5)}\nROM file offset: ${location}\nPalette group: ${assignments.get(`${sourceKind}:${tile}`)??'default'}\n${Array.from(bytes,x=>hex(x)).join(' ')}`;
+ ui.tileInfo.textContent=`Tile #${tile}\n${sourceKind.toUpperCase()} offset: 0x${hex(tile*16,5)}\nROM file offset: ${location}\nPalette group: ${assignments.get(`${sourceKind}:${tile}`)??'default'}\n${Array.from(bytes,x=>hex(x)).join(' ')}`;window.dispatchEvent(new CustomEvent("nes:tile",{detail:{tile}}));
 }
 function updatePaletteUI(){if(!rom)return;const v=activeVariant(),colors=getPalette(0);
  ui.paletteSwatches.replaceChildren();for(let k=0;k<4;k++){const e=document.createElement('span');e.style.background=`rgb(${colors[k].join(',')})`;e.title=`Pixel ${k}: ${v.data?'NES index '+hex(v.data[(v.data.length===32&&ui.paletteLayer.value==='sprite'?16:0)+Number(ui.paletteGroup.value)*4+k]&63):'Preview only'}`;ui.paletteSwatches.append(e)}
@@ -281,3 +281,18 @@ ui.paletteFile.addEventListener('change',async()=>{if(!rom||!ui.paletteFile.file
  rebuildVariantSelect();ui.paletteVariant.value=String(variants.length-1);render();message(`Imported ${b.length} bytes of NES palette indices. Sprite/tile assignments still need attributes or manual selection.`);
  }catch(e){message(e.message)}ui.paletteFile.value=''});
 const drop=$('drop');drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});drop.addEventListener('dragleave',()=>drop.classList.remove('over'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');addFiles(e.dataTransfer.files)});
+
+
+let spriteCRCSource=null,spriteCRCValue='';
+window.NES_ASSET_API={
+ getContext:()=>{
+  if(!rom||!sourceData)return null;
+  if(spriteCRCSource!==sourceData){spriteCRCSource=sourceData;spriteCRCValue=hex(crc32(sourceData),8)}
+  return {name:rom.name,mapper:rom.mapper,sourceKind,sourceData,crc32:spriteCRCValue,paletteGroup:Number(ui.paletteGroup.value),variant:activeVariant(),masterColors,tileCanvas:(tile,group)=>paintImage(tile,1,1,{group,layer:'sprite',transparent:true,assignments:false}),zipStore,pngBlob,download};
+ },
+ tileCanvas:(tile,group)=>paintImage(tile,1,1,{group,layer:'sprite',transparent:true,assignments:false}),
+ zipStore,pngBlob,download,
+ setMasterColors:(rgb)=>{masterColors=rgb;render()},
+ importPalette:(data,name)=>{variants.push({id:'project'+variants.length,name,kind:'project',data:new Uint8Array(data),offset:null});rebuildVariantSelect();ui.paletteVariant.value=String(variants.length-1);render()},
+ selectPreview:()=>{ui.paletteVariant.value='0';render()}
+};
