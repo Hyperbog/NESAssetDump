@@ -26,6 +26,7 @@ jobs:
           python tests/test_renderer.py
           python tests/test_batch_export.py
           python tests/test_workspace.py
+          python tests/test_tile_library.py
           python tests/test_unique_tiles.py
           python tests/test_tile_catalog.py --fixture-dir "$RUNNER_TEMP/godot-fixture"
           python tests/test_sprite_editor.py --fixture-dir "$RUNNER_TEMP/godot-fixture"

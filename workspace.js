@@ -6,12 +6,13 @@
  const status=document.getElementById('workspaceStatus');
  const api=()=>window.NES_ASSET_API;
  const sprites=()=>window.NES_SPRITE_API;
+ const tiles=()=>window.NES_TILE_LIBRARY;
  const tell=(text)=>{status.textContent=text};
  function getWorkspace(){
   const rom=api()?.getROMIdentity();
   if(!rom)throw Error('Load the matching NES ROM before saving.');
   return {schema:'nes-asset-workspace-v1',rom,
-   graphics:api().workspaceSnapshotGraphics(),sprite:sprites().snapshot(),
+   graphics:api().workspaceSnapshotGraphics(),sprite:sprites().snapshot(),tileLibrary:tiles().snapshot(),
    spriteSelection:{animation:Number(document.getElementById('spriteAnimation').value)||0,frame:Number(document.getElementById('spriteFrame').value)||0},
    note:'User-created tile assignments and animation frames; no original ROM data is embedded.'};
  }
@@ -29,6 +30,7 @@
   const target=api().getSourceValidationContext(p.graphics.sourceKind);
   if(!target||p.graphics.sourceCRC32!==target.crc32)throw Error('Workspace graphics source CRC32 mismatch.');
   sprites().validate(p.sprite,target);
+  tiles().validate(p.tileLibrary??tiles().empty());
   if(p.spriteSelection){
    const x=p.spriteSelection;
    if(!Number.isInteger(x.animation)||x.animation<0||x.animation>=p.sprite.animations.length||
@@ -43,11 +45,12 @@
   const p=validate(parsed);
   api().restoreWorkspaceGraphics(p.graphics);
   sprites().restore(p.sprite,{restorePaletteData:false});
+  tiles().restore(p.tileLibrary??tiles().empty());
   if(p.spriteSelection){
    const anim=document.getElementById('spriteAnimation');anim.value=String(p.spriteSelection.animation);anim.dispatchEvent(new Event('change'));
    const frame=document.getElementById('spriteFrame');frame.value=String(p.spriteSelection.frame);frame.dispatchEvent(new Event('change'));
   }
-  tell(`Restored workspace for ${p.rom.name}: palette choices, tile assignments and sprite animations.`);
+  tell(`Restored workspace for ${p.rom.name}: palette choices, tile assignments, labels, collections and sprite animations.`);
  }
  save.addEventListener('click',()=>{
   try{
@@ -60,6 +63,7 @@
  });
  load.addEventListener('change',async()=>{
   const file=load.files?.[0];load.value='';if(!file)return;
+  tell('Loading workspace...');
   try{await restoreFile(file)}catch(e){tell('Load failed: '+e.message)}
  });
  function refresh(){save.disabled=!api()?.getROMIdentity();if(save.disabled)tell('Load an NES ROM to save a workspace.')}

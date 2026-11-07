@@ -166,3 +166,11 @@ In **Section 11**, select a CHR-ROM bank and a sprite sub-palette. The app const
 **Accuracy boundary:** These are potential OAM sprite pairs, not identified characters, levels, or actual animations. The selected physical 8 KiB ROM bank is assumed to map contiguously into PPU $0000–$1FFF. Bank mappings in VRC6/MMC5 (and other mappers) may differ dynamically. A game may use 8×8 sprite mode. Each 8×16 candidate uses one selected sprite sub-palette and transparent index 0; actual palette usage is not recovered. CHR-RAM cartridges still require specific graphics decoding.
 
 Regression test: `python tests/test_sprite_pairs.py`. GitHub CI also loads the exported 8×16 TileSet in headless Godot.
+
+## Tile labels and collections (v0.11)
+
+Select an 8×8 CHR tile and attach a label, comma-separated tags, and notes. Create named collections (for example `Hero`, `Monsters`, `Effects`) and add individual tile indices. The **Searchable Tile Catalog** accepts `label:sword`, `tag:hero`, and `collection:Hero tiles`; use **Export collection as Godot TileSet ZIP** to generate an 8×8 native TileSet from that collection. Each search or collection receives a distinct checksum-suffixed asset folder so separate Godot imports do not overwrite one another.
+
+Tile annotations are **user-authored** and keyed by graphics source (`chr` or experimental `prg`) and original tile index. Full workspaces now contain annotations and collections. Version 0.9/0.10 workspaces still load with an empty tile library, and no ROM data is embedded in JSON. Metadata in TileSet exports includes user labels and collection memberships.
+
+The app does not infer gameplay roles, original sprite assembly, original palettes or decompressed graphics from names/tags. A TileSet uses the selected palette or optional manually assigned per-tile colors.

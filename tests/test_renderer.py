@@ -34,6 +34,7 @@ def inline_test_html():
     html = html.replace('<script defer src="batch_export.js"></script>', '<script>' + (ROOT / 'batch_export.js').read_text() + '</script>')
     html = html.replace('<script defer src="workspace.js"></script>', '<script>' + (ROOT / 'workspace.js').read_text() + '</script>')
     html = html.replace('<script defer src="sprite_pairs.js"></script>', '<script>' + (ROOT / 'sprite_pairs.js').read_text() + '</script>')
+    html = html.replace('<script defer src="tile_library.js"></script>', '<script>' + (ROOT / 'tile_library.js').read_text() + '</script>')
     return html
 
 

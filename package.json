@@ -1,6 +1,6 @@
 {
   "name": "nesassetdump",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Local NES graphics and palette atlas ripper for Godot",
   "private": true,
   "license": "MIT",
@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --publish never",
-    "check": "node --check main.cjs && node --check renderer.js && node --check sprite_editor.js && node --check unique_tiles.js && node --check tile_catalog.js && node --check batch_export.js && node --check workspace.js && node --check sprite_pairs.js"
+    "check": "node --check main.cjs && node --check renderer.js && node --check sprite_editor.js && node --check unique_tiles.js && node --check tile_catalog.js && node --check batch_export.js && node --check workspace.js && node --check sprite_pairs.js && node --check tile_library.js"
   },
   "devDependencies": {
     "electron": "45.2.3",
@@ -29,7 +29,8 @@
       "tile_catalog.js",
       "batch_export.js",
       "workspace.js",
-      "sprite_pairs.js"
+      "sprite_pairs.js",
+      "tile_library.js"
     ],
     "directories": {
       "output": "dist"
