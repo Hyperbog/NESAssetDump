@@ -92,8 +92,8 @@ def main():
             legacy=json.loads(json.dumps(saved));del legacy['tileLibrary']
             page.locator('#workspaceLoad').set_input_files({'name':'legacy.json','mimeType':'application/json',
                  'buffer':json.dumps(legacy).encode()})
-            page.wait_for_function("()=>document.querySelector('#workspaceStatus').textContent.includes('Restored workspace')")
-            assert page.evaluate('window.NES_TILE_LIBRARY.snapshot().collections.length')==0
+            page.wait_for_function("()=>window.NES_TILE_LIBRARY.snapshot().collections.length===0")
+            assert page.locator('#workspaceStatus').inner_text().startswith('Restored workspace')
             assert errors==[],errors
             print('PASS: tile labels, tag search, collections, Godot export, workspace rollback/restore and legacy files')
         finally:
