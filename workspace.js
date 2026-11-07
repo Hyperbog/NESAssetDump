@@ -63,6 +63,7 @@
  });
  load.addEventListener('change',async()=>{
   const file=load.files?.[0];load.value='';if(!file)return;
+  tell('Loading workspace...');
   try{await restoreFile(file)}catch(e){tell('Load failed: '+e.message)}
  });
  function refresh(){save.disabled=!api()?.getROMIdentity();if(save.disabled)tell('Load an NES ROM to save a workspace.')}
